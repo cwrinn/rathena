@@ -33,7 +33,7 @@ cp -r db/ $PKG_PATH/var/$PKG/db
 if [ -d log ]; then cp -r log/* $PKG_PATH/var/$PKG/log/; fi
 cp -r conf/ $PKG_PATH/etc/$PKG/conf
 cp -r npc/ $PKG_PATH/usr/$PKG/npc
-cp athena-start $PKG_PATH/
+cp athena-start function.sh $PKG_PATH/
 cp *-server* $PKG_PATH/bin/
 
 ln -fs $PKG_PATH/var/$PKG/db/ $PKG_PATH/db

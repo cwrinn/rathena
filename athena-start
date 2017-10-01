@@ -1,11 +1,17 @@
 #!/bin/sh
 
 #source var/function
-. ./function.sh
+script=$0
+if [[ -h "${script}" ]];then
+	script="$(readlink "${script}")"
+fi
+script_dir="$(dirname ${script})"
+
+. "${script_dir}/function.sh"
 inst_launch_workaround
 
-PATH=./:$PATH
-LOG_DIR="./log"
+PATH="${script_dir}/:$PATH"
+LOG_DIR="${script_dir}/log"
 
 print_start() {
 	#    more << EOF
@@ -36,9 +42,9 @@ start_serv(){
 		echo "stat_serv, log is enabled"
 		echo "My logfile=${LOGFILE}"
 		if [ -z ${PSRUN} ]; then
-		if [ -e ./${FIFO} ]; then rm "$FIFO"; fi
-			mkfifo "$FIFO"; tee "$LOGRUN" < "$FIFO" & "./$1" > "$FIFO" 2>&1 & PID=$!
-			#"./$1" > >(tee "$LOGRUN") 2>&1 & PID=$! #bash only
+		if [ -e "${script_dir}/${FIFO}" ]; then rm "$FIFO"; fi
+			mkfifo "$FIFO"; tee "$LOGRUN" < "$FIFO" & "${script_dir}/$1" > "$FIFO" 2>&1 & PID=$!
+			#"${script_dir}/$1" > >(tee "$LOGRUN") 2>&1 & PID=$! #bash only
 			echo "$PID" > .$1.pid
 			echo "Server '$1' started at `date +"%m-%d-%H:%M-%S"`" | tee ${LOGFILE}
 		else
@@ -46,7 +52,7 @@ start_serv(){
 		fi
 	else
 		if [ -z ${PSRUN} ]; then
-			./$1&
+			${script_dir}/$1&
 			echo "$!" > .$1.pid
 			echo "Server '$1' started at `date +"%m-%d-%H:%M-%S"`"
 		else
@@ -77,7 +83,7 @@ watch_serv(){
 				echo "restarting server at time at `date +"%m-%d-%H:%M-%S"`" 
 				echo "restarting server at time at `date +"%m-%d-%H:%M-%S"`" >> ${LOGFILE}
 				if [ -e $FIFO ]; then rm $FIFO; fi
-				mkfifo "$FIFO"; tee "$LOGRUN" < "$FIFO" & "./$i" > "$FIFO" 2>&1 & PID=$!
+				mkfifo "$FIFO"; tee "$LOGRUN" < "$FIFO" & "${script_dir}/$i" > "$FIFO" 2>&1 & PID=$!
 				echo "$PID" > .$i.pid
 				if [ $2 ] && [ $2 -lt $count ]; then break; fi   
 			fi
@@ -96,7 +102,7 @@ restart(){
 			get_status ${i}
 			if [ ${PSRUN} ]; then echo "'${i}' is still running p${PSRUN} waiting for the process to end"; sleep 2;
 			else 
-				if [ -e ./${FIFO} ]; then rm "$FIFO"; fi
+				if [ -e "${script_dir}/${FIFO}" ]; then rm "$FIFO"; fi
 				break
 			fi
 		done
@@ -139,7 +145,7 @@ case $1 in
 		for i in ${M_SRV} ${C_SRV} ${L_SRV}
 		do
 			PIDFILE=.${i}.pid
-			if [ -e ./${PIDFILE} ]; then
+			if [ -e "${script_dir}/${PIDFILE}" ]; then
 				kill $(cat ${PIDFILE})
 				
 				while true; do
@@ -167,13 +173,13 @@ case $1 in
 	'val_runonce')
 		for i in ${L_SRV} ${C_SRV} ${M_SRV}
 		do
-			valgrind --leak-check=full --show-leak-kinds=all ./$i --run-once > "log/$i.runonce.leak"
+			valgrind --leak-check=full --show-leak-kinds=all "${script_dir}/$i" --run-once > "log/$i.runonce.leak"
 		done
 	;;
 	'valchk')
 		for i in ${L_SRV} ${C_SRV} ${M_SRV}
 		do
-			valgrind --leak-check=full --show-leak-kinds=all ./$i > "log/$i.runonce.leak"
+			valgrind --leak-check=full --show-leak-kinds=all "${script_dir}/$i" > "log/$i.runonce.leak"
 		done
 	;;
 	'help')
